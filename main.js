@@ -15,8 +15,9 @@ class MyComponent extends Component {
                 <h1>my component</h1>
                 <button
                     onclick={() => {
-                        this.state.a++;
-                        this.rerender();
+                        this.setState({
+                            a: this.state.a + 1
+                        })
                     }}
                 >
                     add
