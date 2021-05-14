@@ -11,8 +11,10 @@ module.exports = {
                     options: {
                         presets: ['@babel/preset-env'],
                         plugins: [
-                            '@babel/plugin-transform-react-jsx',
-                            { pragma: 'createElement' },
+                            [
+                                '@babel/plugin-transform-react-jsx',
+                                { pragma: 'createElement' },
+                            ],
                         ],
                     },
                 },

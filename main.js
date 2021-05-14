@@ -1,5 +1,21 @@
-for (let i = 0; i < 6; i++) {
-    console.log(i);
+import { createElement, Component, render } from './toy-react';
+
+class MyComponent extends Component {
+    render() {
+        return (
+            <div>
+                <h1>my component</h1>
+                {this.children}
+            </div>
+        );
+    }
 }
 
-const a = <div>hello</div>
+render(
+    <MyComponent id="a" class="c">
+        <div>helllo</div>
+        <div></div>
+        <div></div>
+    </MyComponent>,
+    document.body
+);
