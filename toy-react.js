@@ -1,4 +1,87 @@
 const RENDER_TO_DOM = Symbol('render to dom');
+export class Component {
+    constructor() {
+        this.props = Object.create(null);
+        this.children = [];
+        this._root = null;
+        this._range = null;
+    }
+    setAttribute(name, value) {
+        this.props[name] = value;
+    }
+    appendChild(component) {
+        this.children.push(component);
+    }
+
+    [RENDER_TO_DOM](range) {
+        this._range = range;
+        this.render()[RENDER_TO_DOM](range);
+    }
+
+    rerender() {
+        const oldRange = this._range;
+
+        const range = document.createRange();
+        range.setStart(this._range.startContainer, oldRange.startOffset);
+        range.setEnd(this._range.startContainer, oldRange.startOffset);
+        this[RENDER_TO_DOM](range);
+
+        oldRange.setStart(range.endContainer, range.endOffset);
+        oldRange.deleteContents();
+    }
+
+    setState(newState) {
+        if (this.state === null || typeof this.state !== 'object') {
+            this.state = newState;
+            this.rerender();
+            return;
+        }
+        const merge = (oldState, newState) => {
+            for (let p in newState) {
+                if (oldState[p] === null || typeof oldState[p] !== 'object') {
+                    oldState[p] = newState[p];
+                } else {
+                    merge(oldState[p], newState[p]);
+                }
+            }
+        };
+
+        merge(this.state, newState);
+        this.rerender();
+    }
+}
+
+export function createElement(type, attributes, ...children) {
+    let e;
+    if (typeof type === 'string') {
+        e = new ElementWrapper(type);
+    } else {
+        e = new type;
+    }
+
+    for (let p in attributes) {
+        e.setAttribute(p, attributes[p]);
+    }
+
+    const insertChildren = (children) => {
+        for (let child of children) {
+            if (typeof child === 'string') {
+                child = new TextWrapper(child);
+            }
+            if (child === null) {
+                continue;
+            }
+            if (Array.isArray(child)) {
+                insertChildren(child);
+            } else {
+                e.appendChild(child);
+            }
+        }
+    };
+    insertChildren(children);
+
+    return e;
+}
 
 class ElementWrapper {
     constructor(type) {
@@ -11,11 +94,15 @@ class ElementWrapper {
                 value
             );
         } else {
-            this.root.setAttribute(name, value);
+            if (name === 'className') {
+                this.root.setAttribute('class', value);
+            } else {
+                this.root.setAttribute(name, value);
+            }
         }
     }
     appendChild(component) {
-        let range = document.createRange();
+        const range = document.createRange();
         range.setStart(this.root, this.root.childNodes.length);
         range.setEnd(this.root, this.root.childNodes.length);
         component[RENDER_TO_DOM](range);
@@ -38,81 +125,8 @@ class TextWrapper {
     }
 }
 
-export class Component {
-    constructor() {
-        this.props = Object.create(null);
-        this.children = [];
-        this._root = null;
-        this._range = null;
-    }
-    setAttribute(name, value) {
-        this.props[name] = value;
-    }
-    appendChild(component) {
-        this.children.push(component);
-    }
-
-    [RENDER_TO_DOM](range) {
-        this._range = range;
-        this.render()[RENDER_TO_DOM](range);
-    }
-
-    rerender() {
-        this._range.deleteContents();
-        this[RENDER_TO_DOM](this._range);
-    }
-
-    setState(newState) {
-        if (this.state === null || typeof this.state !== 'object') {
-            this.state = newState;
-            this.rerender();
-            return;
-        }
-        let merge = (oldState, newState) => {
-            for (let p in newState) {
-                if (oldState[p] === null || typeof oldState[p] !== 'object') {
-                    oldState[p] = newState[p];
-                } else {
-                    merge(oldState[p], newState[p]);
-                }
-            }
-        };
-        merge(this.state, newState);
-        this.rerender();
-    }
-}
-
-export function createElement(type, attributes, ...children) {
-    let e;
-    if (typeof type === 'string') {
-        e = new ElementWrapper(type);
-    } else {
-        e = new type();
-    }
-
-    for (let p in attributes) {
-        e.setAttribute(p, attributes[p]);
-    }
-
-    const inserChildren = (children) => {
-        for (let child of children) {
-            if (typeof child === 'string') {
-                child = new TextWrapper(child);
-            }
-            if (typeof child === 'object' && child instanceof Array) {
-                inserChildren(child);
-            } else {
-                e.appendChild(child);
-            }
-        }
-    };
-    inserChildren(children);
-
-    return e;
-}
-
 export function render(compoment, parentElement) {
-    let range = document.createRange();
+    const range = document.createRange();
     range.setStart(parentElement, 0);
     range.setEnd(parentElement, parentElement.childNodes.length);
     range.deleteContents();
